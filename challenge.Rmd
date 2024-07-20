@@ -1,0 +1,46 @@
+---
+title: "Kaggle competition "Prudential Life Insurance Assessment""
+output: html_notebook
+---
+
+This notebook defines our solution for the Kaggle competition "Prudential Life Insurance Assessment".
+
+```{r}
+library(mlr3verse)
+library(mlr3learners)
+library(Metrics)
+```
+
+## Load the data
+
+```{r}
+set.seed(123)
+
+data <- read.csv("data/train.csv")
+
+# create a mlr3 task
+task_regr <- as_task_regr(data, target = "Response")
+
+# split the data into training and testing sets
+split <- partition(task_regr, ratio = 0.8)
+```
+
+## Preprocess the data using ml3 pipelines
+
+The data contains many features and requires intensive preprocessing to successfully train a model.
+
+```{r}
+task_regr$data(rows = split$test)
+
+```
+
+
+
+```{r}
+rf_lrn <- lrn("classif.ranger")
+
+rf_lrn$train(task, row_ids = split$train)
+test <- task$data(rows = split$test)	
+```
+
+

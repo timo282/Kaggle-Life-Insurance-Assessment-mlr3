@@ -12,8 +12,8 @@ library(mlr3learners)
 library(ggplot2)
 library(Metrics)
 
-data_train <- read.csv("train.csv")
-data_test <- read.csv("test.csv")
+data_train <- read.csv("data/train.csv")
+data_test <- read.csv("data/test.csv")
 ```
 
 
