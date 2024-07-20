@@ -43,6 +43,7 @@ selected_features <- setdiff(colnames(data_train), append(missing_features_rmv, 
 Create a pipeline to preprocess the data.
 
 ```{r}
+# NOT WORKING YET - DOES NOT REMOVE ANY FEATURES
 po_select <- po("select", affect_columns = selector_name(selected_features))
 po_impute <- po("imputemean")
 ```
@@ -55,9 +56,9 @@ pipeline <- po_select %>>% po_impute
 
 ```{r}
 # check the result of the pipeline
-result = pipeline$train(list(task_regr))
+result = pipeline$train(task_regr)
 
-result[[1]]$data()
+data_res = result[[1]]$data()
 ```
 
 
