@@ -32,8 +32,10 @@ split <- partition(task_regr, ratio = 0.8)
 The data contains many features and requires intensive preprocessing to successfully train a model.
 
 ```{r}
-data_train = task_regr$data(rows = split$train)
+data_train <- task_regr$data(rows = split$train)
+```
 
+```{r}
 # get a list of features with more than 30% missing values
 threshold <- 0.3
 missing_features_rmv <- colnames(data_train)[colMeans(is.na(data_train)) > threshold]
@@ -43,32 +45,79 @@ selected_features <- setdiff(colnames(data_train), append(missing_features_rmv, 
 Create a pipeline to preprocess the data.
 
 ```{r}
+features_impute_mean <- c("Employment_Info_1", "Employment_Info_4", "Employment_Info_6")
+features_imput_mode <- c("Medical_History_1")
 po_select <- po("select", selector = selector_name(selected_features))
-po_impute <- po("imputemean")
+po_impute <- po(
+    "imputemean",
+    affect_columns = selector_name(features_impute_mean)
+) %>>% po(
+    "imputemode",
+    affect_columns = selector_name(features_imput_mode)
+)
 ```
 
+```{r}	
+# ordinal encoding
+features_encode_ordinal <- c("Product_Info_2")
+ordinal_encode <- function(x) {
+    as.integer(as.factor(x))
+}
+po_ordinal <- po("colapply",
+    id = "ordinal_encode",
+    applicator = ordinal_encode,
+    affect_columns = selector_name(features_encode_ordinal)
+)
+
+# binary encoding
+features_encode_binary <- c("Product_Info_1", "Product_Info_5", "Product_Info_6")
+binary_encode <- function(x) {
+    x <- as.factor(x)
+    levels_x <- levels(x)
+    if (length(levels_x) != 2) stop("The variable must have exactly two levels")
+    encoded <- as.integer(x) - 1
+    if (!all(encoded %in% c(0, 1))) stop("Resulting values are not all 0 or 1")
+    encoded
+}
+po_binary <- po("colapply",
+    id = "binary_encode",
+    applicator = binary_encode,
+    affect_columns = selector_name(features_encode_binary)
+)
+
+# one-hot encoding
+features_encode_onehot <- c("Product_Info_7")
+po_onehot <- po("encode",
+    affect_columns = selector_name(features_encode_onehot, assert_present = TRUE),
+    method = "one-hot"
+)
+
+# impact encoding
+# features_encode_impact <- c()
+# po_impact <- po("encodeimpact", affect_columns = selector_name(features_encode_impact))
+```
 
 ```{r}
-pipeline <- po_select %>>% po_impute
+pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_onehot # %>>% po_impact
 ```
 
 
 ```{r}
 # check the result of the pipeline
-result = pipeline$train(task_regr)
+result <- pipeline$train(task_regr)
 
-data_res = result[[1]]$data()
+data_res <- result[[1]]$data()
 # print columns of data_res
 colnames(data_res)
 ```
 
 
 ```{r}
-resampling = rsmp("cv", folds = 5)
-rr = resample(task_regr, learner, resampling)
+resampling <- rsmp("cv", folds = 5)
+rr <- resample(task_regr, learner, resampling)
 
 source("scripts/qwk_measure.R")
-measure = MeasureRegrQuadraticWeightedKappa$new()
+measure <- MeasureRegrQuadraticWeightedKappa$new()
 
 rr$aggregate(measure)
 ```

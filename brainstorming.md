@@ -1,4 +1,4 @@
-- remove columns with many missing values (>XX%) or fill missing values
+- DONE remove columns with many missing values (>XX%) or fill missing values
     - Employment_Info_1      0.0003
     - Employment_Info_4      0.1142
     - Employment_Info_6      0.1828
@@ -13,17 +13,17 @@
     - Medical_History_24     0.9360 remove
     - Medical_History_32     0.9814 remove
 
-- remove id (unique)
-- Product_Info_1: encode binary?
-- Product_Info_2: check if ordinal scale?
-- Product_Info_5: encode binary?
-- Product_Info_6: encode binary?
-- Product_Info_7: encode OHE
+- DONE remove id (unique)
+- DONE Product_Info_1: encode binary?
+- DONE Product_Info_2: check if ordinal scale? --> encoded ordinal
+- DONE Product_Info_5: encode binary?
+- DONE Product_Info_6: encode binary?
+- Product_Info_7: encode OHE - what do we do here @moritz?
 - Employment_Info_3: encode binary?
 - Employment_Info_4: problem heavy tail!
 - Employment_Info_5: encode binary
 - Medical_History_3-9, Medical_History_11-14, Medical_History_16-23, Medical_History_25-31, Medical_History_33-41: binary or 3 - can this be aggregated somehow?
-- Medical_Keyword_1-48 are all binary (0-1): convert to one feature and target encode?
+- Medical_Keyword_1-48 are all binary (0-1): construct new feature sum keywords and then perform pca and include first seven
 
 - approaches: aggregate variables into one and encode differently / perform dimesion reduction OR perform feature selection (e.g. based on correlation)
 
