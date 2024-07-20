@@ -37,7 +37,7 @@ data_train = task_regr$data(rows = split$train)
 # get a list of features with more than 30% missing values
 threshold <- 0.3
 missing_features_rmv <- colnames(data_train)[colMeans(is.na(data_train)) > threshold]
-selected_features <- setdiff(colnames(data_train), missing_features_rmv)
+selected_features <- setdiff(colnames(data_train), append(missing_features_rmv, "Id"))
 ```
 
 Create a pipeline to preprocess the data.
@@ -55,7 +55,7 @@ pipeline <- po_select %>>% po_impute
 
 ```{r}
 # check the result of the pipeline
-result = pipeline$train(task_regr)
+result = pipeline$train(list(task_regr))
 
 result[[1]]$data()
 ```
@@ -66,7 +66,7 @@ resampling = rsmp("cv", folds = 5)
 rr = resample(task_regr, learner, resampling)
 
 source("scripts/qwk_measure.R")
-measure = MeasureClassifQuadraticWeightedKappa$new()
+measure = MeasureRegrQuadraticWeightedKappa$new()
 
 rr$aggregate(measure)
 ```
