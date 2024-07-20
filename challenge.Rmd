@@ -18,7 +18,7 @@ library(Metrics)
 ```{r}
 set.seed(123)
 
-data <- read.csv("data/train.csv")
+data <- read.csv("data\\train.csv")
 
 # create a mlr3 task
 task_regr <- as_task_regr(data, target = "Response")
@@ -43,8 +43,7 @@ selected_features <- setdiff(colnames(data_train), append(missing_features_rmv, 
 Create a pipeline to preprocess the data.
 
 ```{r}
-# NOT WORKING YET - DOES NOT REMOVE ANY FEATURES
-po_select <- po("select", affect_columns = selector_name(selected_features))
+po_select <- po("select", selector = selector_name(selected_features))
 po_impute <- po("imputemean")
 ```
 
@@ -59,6 +58,8 @@ pipeline <- po_select %>>% po_impute
 result = pipeline$train(task_regr)
 
 data_res = result[[1]]$data()
+# print columns of data_res
+colnames(data_res)
 ```
 
 
