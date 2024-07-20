@@ -1,0 +1,50 @@
+---
+title: "Prudential Life Insurance Challenge - Data Exploration"
+output: html_notebook
+---
+
+```{r}
+# load data
+train <- read.csv("train.csv")
+test <- read.csv("test.csv")
+
+train
+```
+
+```{r}
+# explore the training data by plotting the distribution of the response variable
+library(ggplot2)
+
+ggplot(train, aes(x = Response)) + 
+  geom_bar() + 
+  labs(title = "Distribution of Response Variable in Training Data",
+       x = "Response",
+       y = "Frequency")
+```
+```{r}
+# select InsAge, Ht, Wt and BMI columns
+train_subset <- train[, c("Ins_Age", "Ht", "Wt", "BMI")]
+
+# plot the distribution of the selected columns as a scatter matrix
+library(GGally)
+
+ggpairs(train_subset,
+        lower = list(continuous = "points"),
+        diag = list(continuous = "bar"),
+        title = "Scatter Matrix of Person Properties"
+        )
+```
+```{r}
+# show the Medical history for one randomly selected person
+set.seed(123)
+
+# select the columns that contain the medical history
+med_hist_cols <- grep("Medical_History", names(train), value = TRUE)
+
+# select a random person
+person <- sample(1:nrow(train), 1)
+
+# show the medical history for the selected person
+train[person, med_hist_cols]
+```
+

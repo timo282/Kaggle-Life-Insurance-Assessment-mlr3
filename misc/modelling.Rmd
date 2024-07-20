@@ -1,0 +1,117 @@
+---
+title: "Prudential Life Insurance Challenge - Modelling"
+output: html_notebook
+---
+
+```{r}
+library(mlr3)
+library(mlr3learners)
+library(mlr3verse)
+```
+
+
+```{r}
+# load data
+train <- read.csv("train.csv")
+test <- read.csv("test.csv")
+```
+
+
+```{r}
+# train a simple random forest to classify the response variable
+train_subset <- train[, c("Ins_Age", "Ht", "Wt", "BMI", "Response")]
+task = as_task_classif(train_subset, target = "Response")
+```
+
+```{r}
+# evaluate the model using a custom measure
+
+# define the custom measure
+# Load necessary libraries
+library(mlr3)
+library(R6)
+library(Metrics) # Make sure the Metrics package is installed
+
+# Define the custom measure class
+MeasureClassifQuadraticWeightedKappa = R6::R6Class("MeasureClassifQuadraticWeightedKappa",
+  inherit = mlr3::MeasureClassif, # classification measure
+  public = list(
+    initialize = function() { # initialize class
+      super$initialize(
+        id = "quadratic_weighted_kappa", # unique ID
+        packages = "Metrics", # package dependency
+        properties = character(), # no special properties
+        predict_type = "response", # measures response prediction
+        range = c(-1, 1), # results in values between (-1, 1)
+        minimize = FALSE # larger values are better
+      )
+    }
+  ),
+
+  private = list(
+    # define score as private method
+    .score = function(prediction, ...) {
+      # convert the prediction to integer instead of factor vectors
+      response = as.integer(prediction$response)
+      truth = as.integer(prediction$truth)
+      
+      # define loss
+      quadratic_weighted_kappa = function(truth, response) {
+        Metrics::ScoreQuadraticWeightedKappa(truth, response)
+      }
+      # call loss function
+      quadratic_weighted_kappa(truth, response)
+    }
+  )
+)
+
+# Example usage
+# Create a custom measure object
+measure = MeasureClassifQuadraticWeightedKappa$new()
+
+# Print the measure object
+print(measure)
+
+```
+```{r}
+# train a random forest model using the custom measure
+rf = lrn("classif.ranger")
+
+rs = rsmp("cv", folds = 3)
+
+rr = resample(task, rf, rs, store_models = TRUE)
+
+rr$aggregate(measure)
+```
+```{r}
+# train the learner on the entire training dataset
+rf$train(task)
+```
+
+```{r}
+pred = rf$predict_newdata(newdata = test, task=NULL)
+```
+
+```{r}
+# create a new dataframe in the correct output format (Id (from column in data), Response)
+
+output = data.frame(Id = test$Id, Response = as.integer(pred$data$response))
+
+# export the output as csv file
+write.csv(output, "submission.csv", row.names = FALSE)
+
+output
+```
+
+
+```{r}
+# predict the response variable for the test data
+test_subset <- test[, c("Ins_Age", "Ht", "Wt", "BMI")]
+test_subset$dummy_target <- NA # Adding a dummy target column for test data
+
+# use a generic task to predict the response variable
+test_task = as_task_classif(test_subset, target = "dummy_target")
+
+predictions = predict(rf, newdata = test_subset)
+```
+
