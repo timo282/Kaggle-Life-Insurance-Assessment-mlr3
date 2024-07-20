@@ -1,13 +1,15 @@
 ---
-title: "Kaggle competition "Prudential Life Insurance Assessment""
+title: "Kaggle competition Prudential Life Insurance Assessment"
 output: html_notebook
 ---
 
 This notebook defines our solution for the Kaggle competition "Prudential Life Insurance Assessment".
 
 ```{r}
+library(mlr3)
 library(mlr3verse)
 library(mlr3learners)
+library(mlr3pipelines)
 library(Metrics)
 ```
 
@@ -30,17 +32,41 @@ split <- partition(task_regr, ratio = 0.8)
 The data contains many features and requires intensive preprocessing to successfully train a model.
 
 ```{r}
-task_regr$data(rows = split$test)
+data_train = task_regr$data(rows = split$train)
 
+# get a list of features with more than 30% missing values
+threshold <- 0.3
+missing_features_rmv <- colnames(data_train)[colMeans(is.na(data_train)) > threshold]
+selected_features <- setdiff(colnames(data_train), missing_features_rmv)
 ```
 
+Create a pipeline to preprocess the data.
+
+```{r}
+po_select <- po("select", affect_columns = selector_name(selected_features))
+po_impute <- po("imputemean")
+```
 
 
 ```{r}
-rf_lrn <- lrn("classif.ranger")
-
-rf_lrn$train(task, row_ids = split$train)
-test <- task$data(rows = split$test)	
+pipeline <- po_select %>>% po_impute
 ```
 
 
+```{r}
+# check the result of the pipeline
+result = pipeline$train(task_regr)
+
+result[[1]]$data()
+```
+
+
+```{r}
+resampling = rsmp("cv", folds = 5)
+rr = resample(task_regr, learner, resampling)
+
+source("scripts/qwk_measure.R")
+measure = MeasureClassifQuadraticWeightedKappa$new()
+
+rr$aggregate(measure)
+```
