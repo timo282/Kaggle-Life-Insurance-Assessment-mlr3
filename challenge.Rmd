@@ -31,8 +31,27 @@ split <- partition(task_regr, ratio = 0.8)
 
 The data contains many features and requires intensive preprocessing to successfully train a model.
 
+```{r}	
+# for Medical_Keyword_1-48 are all binary (0-1): construct new feature sum keywords
+features_medical_keywords <- paste0("Medical_Keyword_", 1:48)
+
+sum_columns <- function(data, columns) {
+    if (length(columns) == 0) {
+        stop("No columns to sum.")
+    }
+    # Ensure the result is a data.table with a column name
+    data.table(sum_medical_keywords = rowSums(data[, ..columns]))
+}
+
+sum_medical_keywords <- sum_columns(task_regr$data(), features_medical_keywords)
+task_regr$cbind(sum_medical_keywords)
+```
+
 ```{r}
 data_train <- task_regr$data(rows = split$train)
+
+task_train <- task_regr$clone(deep = TRUE)$filter(split$train)
+task_test <- task_regr$clone(deep = TRUE)$filter(split$test)
 ```
 
 ```{r}
@@ -70,7 +89,7 @@ po_ordinal <- po("colapply",
 )
 
 # binary encoding
-features_encode_binary <- c("Product_Info_1", "Product_Info_5", "Product_Info_6")
+features_encode_binary <- c("Product_Info_1", "Product_Info_5", "Product_Info_6", "Employment_Info_3", "Employment_Info_5", "InsuredInfo_2", "InsuredInfo_4", "InsuredInfo_5", "InsuredInfo_6", "InsuredInfo_7", "Insurance_History_1")
 binary_encode <- function(x) {
     x <- as.factor(x)
     levels_x <- levels(x)
@@ -86,29 +105,52 @@ po_binary <- po("colapply",
 )
 
 # one-hot encoding
-features_encode_onehot <- c("Product_Info_7")
-po_onehot <- po("encode",
-    affect_columns = selector_name(features_encode_onehot, assert_present = TRUE),
-    method = "one-hot"
-)
+# features_encode_onehot <- 
+# po_onehot <- po("encode",
+#     affect_columns = selector_name(features_encode_onehot, assert_present = TRUE),
+#     method = "one-hot"
+# )
 
 # impact encoding
-# features_encode_impact <- c()
-# po_impact <- po("encodeimpact", affect_columns = selector_name(features_encode_impact))
+features_encode_impact <- c("Product_Info_7", "InsuredInfo_1", "Insurance_History_2", "Insurance_History_3", "Insurance_History_4", "Insurance_History_7", "Insurance_History_8", "Insurance_History_9", "Family_Hist_1")
+convert_to_factors <- function(x) {
+    as.factor(x)
+}
+po_impact <- po("colapply",
+    id = "convert_to_factors",
+    applicator = convert_to_factors,
+    affect_columns = selector_name(features_encode_impact)
+) %>>% po("encodeimpact", affect_columns = selector_name(features_encode_impact))
 ```
 
 ```{r}
-pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_onehot # %>>% po_impact
+# perform a pca on the medical keywords 1-48, selecting the first 7 pcs
+features_pca <- paste0("Medical_Keyword_", 1:48)
+po_pca <- po("pca", affect_columns = selector_name(features_pca), rank. = 7)
+
+# remove the original medical keywords
+po_remove_medical_keywords <- po("select", id = "remove_medical_keywords", selector = selector_invert(selector_name(features_pca)))
+
+po_medical_keywords <- po_pca %>>% po_remove_medical_keywords
+```
+
+```{r}
+po_scale <- po("scalerange")
+```
+
+
+```{r}
+pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_impact %>>% po_medical_keywords %>>% po_scale # %>>% po_onehot
 ```
 
 
 ```{r}
 # check the result of the pipeline
-result <- pipeline$train(task_regr)
+result <- pipeline$train(task_train)
 
 data_res <- result[[1]]$data()
 # print columns of data_res
-colnames(data_res)
+head(data_res)
 ```
 
 
