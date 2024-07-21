@@ -19,6 +19,7 @@ library(Metrics)
 set.seed(123)
 
 data <- read.csv("data\\train.csv")
+data_submission <- read.csv("data\\test.csv")
 
 # create a mlr3 task
 task_regr <- as_task_regr(data, target = "Response")
@@ -39,12 +40,17 @@ sum_columns <- function(data, columns) {
     if (length(columns) == 0) {
         stop("No columns to sum.")
     }
+    data = as.data.table(data)
     # Ensure the result is a data.table with a column name
     data.table(sum_medical_keywords = rowSums(data[, ..columns]))
 }
 
 sum_medical_keywords <- sum_columns(task_regr$data(), features_medical_keywords)
 task_regr$cbind(sum_medical_keywords)
+
+# do the same for the submission data
+sum_medical_keywords_submission <- sum_columns(data_submission, features_medical_keywords)
+data_submission <- cbind(data_submission, sum_medical_keywords_submission)
 ```
 
 ```{r}
@@ -146,20 +152,70 @@ pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_impa
 
 ```{r}
 # check the result of the pipeline
-result <- pipeline$train(task_train)
+# result <- pipeline$train(task_train)
 
-data_res <- result[[1]]$data()
-# print columns of data_res
-head(data_res)
+# data_res <- result[[1]]$data()
+# # print columns of data_res
+# head(data_res)
 ```
 
 
 ```{r}
-resampling <- rsmp("cv", folds = 5)
-rr <- resample(task_regr, learner, resampling)
+level0 <- pipeline %>>% po("learner_cv", learner = lrn("regr.ranger"), resampling.method = "cv", resampling.folds = 3)
 
-source("scripts/qwk_measure.R")
-measure <- MeasureRegrQuadraticWeightedKappa$new()
+# level1 <- lrn("classif.rpart", id="rpart_out")
+# learner <- as_learner(level0 %>>% level1)
 
-rr$aggregate(measure)
+# learner$train(task_regr, row_ids = split$train)
+
+# source("scripts/qwk_measure.R")
+# measure <- MeasureRegrQuadraticWeightedKappa$new()
+
+# learner$predict(task_regr, row_ids = split$test)$score(measure)
 ```
+
+```{r}	
+level0_train_output = level0$train(task_regr)
+level0_train_output
+```
+
+
+```{r}	
+level0_out_classif = as_task_classif(level0_train_output[[1]]$data(), target = "Response")
+level1 <- lrn("classif.rpart", id="rpart_out")
+level1$train(level0_out_classif)
+```
+
+```{r}	
+source("scripts/qwk_measure.R")
+measure <- MeasureClassifQuadraticWeightedKappa$new()
+
+task_test = as_task_regr(task_regr$data(rows = split$test), target = "Response")
+
+level0_test_out = level0$predict(task_test)
+level0_test_out_classif = as_task_classif(level0_test_out[[1]]$data(), target = "Response")
+level1$predict(level0_test_out_classif)$score(measure)
+```
+
+```{r}
+# add a column response to the submission data random between 1 and 8
+data_submission$Response = sample(1:8, nrow(data_submission), replace=TRUE)
+level0_submission_output = level0$predict(as_task_regr(data_submission, target="Response"))
+level0_submission_out_classif = as_task_classif(level0_submission_output[[1]]$data(), target = "Response")
+```
+
+```{r}	
+current_datetime <- format(Sys.time(), "%Y%m%d%H%M")
+filename <- paste0("submissions/submission_", "stacked", current_datetime, ".csv")
+
+preds <- level1$predict_newdata(newdata = level0_submission_out_classif$data())
+results <- data.frame(Id = data_submission$Id, Response = as.integer(preds$response))
+
+write.csv(results, filename, row.names = FALSE)
+```	
+
+```{r}
+source("scripts/utils.R")
+create_learner_submission(level1, level0_submission_out_classif, name="ranger_pipe")
+```
+

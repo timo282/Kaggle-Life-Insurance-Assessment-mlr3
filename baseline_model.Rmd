@@ -6,7 +6,7 @@ output: html_notebook
 This notebook defines a simple model for the Kaggle competition "Prudential Life Insurance Assessment". 
 For simplicity we reduced the number of features to "Ins_Age", "Ht", "Wt", "BMI" and used a random forest classifier.
 
-``` {r}
+```{r}
 library(mlr3verse)
 library(mlr3learners)
 library(ggplot2)
@@ -62,15 +62,7 @@ learner$train(task_train)
 ```
 
 ```{r}
-preds = learner$predict_newdata(newdata = data_test)
-preds
-```
-```{r}
-results = data.frame(Id = data_test$Id, Response = as.integer(preds$response))
-head(results)
-```
-```{r}
-# Save the results to a CSV file, do not put strings in "
-write.csv(results, "submissions/submission.csv", row.names = FALSE)
+source("scripts/utils.R")
+create_learner_submission(learner, data_test)
 ```
 

@@ -1,13 +1,14 @@
-write_results_with_timestamp <- function(results) {
-  if (!dir.exists("submissions")) {
-    dir.create("submissions")
-  }
+create_learner_submission <- function(learner, data_test, name="") {
+    if (!dir.exists("submissions")) {
+        dir.create("submissions")
+    }
+    current_datetime <- format(Sys.time(), "%Y%m%d%H%M")
+    filename <- paste0("submissions/submission_", name, current_datetime, ".csv")
 
-  current_datetime <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")
+    preds <- learner$predict_newdata(newdata = data_test)
+    results <- data.frame(Id = data_test$Id, Response = as.integer(preds$response))
 
-  filename <- paste0("submissions/submission_", current_datetime, ".csv")
+    write.csv(results, filename, row.names = FALSE)
 
-  write.csv(results, filename, row.names = FALSE)
-
-  return(filename)
+    return(filename)
 }

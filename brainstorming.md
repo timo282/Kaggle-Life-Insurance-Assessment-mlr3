@@ -8,7 +8,7 @@
     - Family_Hist_4          0.3231
     - Family_Hist_5          0.7041 remove
     - Medical_History_1      0.1497 fill?
-    - Medical_History_10     0.9906 remove
+    - Medical_History_10     0.9906 remove 
     - Medical_History_15     0.7510 remove
     - Medical_History_24     0.9360 remove
     - Medical_History_32     0.9814 remove
