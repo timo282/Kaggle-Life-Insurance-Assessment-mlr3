@@ -84,47 +84,47 @@ Check if all columns have been preprocessed:
 - D 'Family_Hist_3', removed
 - D 'Family_Hist_4', removed
 - D 'Family_Hist_5', removed
-- 'Medical_History_1', impute mode
-- 'Medical_History_2',
-- 'Medical_History_3',
-- 'Medical_History_4',
-- 'Medical_History_5',
-- 'Medical_History_6',
-- 'Medical_History_7',
-- 'Medical_History_8',
-- 'Medical_History_9',
+- D 'Medical_History_1', impute mode, target enc, pca
+- D 'Medical_History_2', target enc, pca
+- D 'Medical_History_3', target enc, pca
+- D 'Medical_History_4', target enc, pca
+- D 'Medical_History_5', target enc, pca
+- D 'Medical_History_6', target enc, pca
+- D 'Medical_History_7', target enc, pca
+- D 'Medical_History_8', target enc, pca
+- D 'Medical_History_9', target enc, pca
 - D 'Medical_History_10', removed
-- 'Medical_History_11',
-- 'Medical_History_12',
-- 'Medical_History_13',
-- 'Medical_History_14',
+- D 'Medical_History_11', target enc, pca
+- D 'Medical_History_12', target enc, pca
+- D 'Medical_History_13', target enc, pca
+- D 'Medical_History_14', target enc, pca
 - D 'Medical_History_15', removed
-- 'Medical_History_16',
-- 'Medical_History_17',
-- 'Medical_History_18',
-- 'Medical_History_19',
-- 'Medical_History_20',
-- 'Medical_History_21',
-- 'Medical_History_22',
-- 'Medical_History_23',
+- D 'Medical_History_16', target enc, pca
+- D 'Medical_History_17', target enc, pca
+- D 'Medical_History_18', target enc, pca
+- D 'Medical_History_19', target enc, pca
+- D 'Medical_History_20', target enc, pca
+- D 'Medical_History_21', target enc, pca
+- D 'Medical_History_22', target enc, pca
+- D 'Medical_History_23', target enc, pca
 - D 'Medical_History_24', removed
-- 'Medical_History_25',
-- 'Medical_History_26',
-- 'Medical_History_27',
-- 'Medical_History_28',
-- 'Medical_History_29',
-- 'Medical_History_30',
-- 'Medical_History_31',
+- D 'Medical_History_25', target enc, pca
+- D 'Medical_History_26', target enc, pca
+- D 'Medical_History_27', target enc, pca
+- D 'Medical_History_28', target enc, pca
+- D 'Medical_History_29', target enc, pca
+- D 'Medical_History_30', target enc, pca
+- D 'Medical_History_31', target enc, pca
 - D 'Medical_History_32', removed
-- 'Medical_History_33',
-- 'Medical_History_34',
-- 'Medical_History_35',
-- 'Medical_History_36',
-- 'Medical_History_37',
-- 'Medical_History_38',
-- 'Medical_History_39',
-- 'Medical_History_40',
-- 'Medical_History_41',
+- D 'Medical_History_33', target enc, pca
+- D 'Medical_History_34', target enc, pca
+- D 'Medical_History_35', target enc, pca
+- D 'Medical_History_36', target enc, pca
+- D 'Medical_History_37', target enc, pca
+- D 'Medical_History_38', target enc, pca
+- D 'Medical_History_39', target enc, pca
+- D 'Medical_History_40', target enc, pca
+- D 'Medical_History_41', target enc, pca
 - D 'Medical_Keyword_1', summed and PCA
 - D 'Medical_Keyword_2', summed and PCA
 - D 'Medical_Keyword_3', summed and PCA

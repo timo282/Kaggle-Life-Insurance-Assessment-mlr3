@@ -132,12 +132,29 @@ po_impact <- po("colapply",
 ```{r}
 # perform a pca on the medical keywords 1-48, selecting the first 7 pcs
 features_pca <- paste0("Medical_Keyword_", 1:48)
-po_pca <- po("pca", affect_columns = selector_name(features_pca), rank. = 7)
+po_pca <- po("pca", id="pca_medical_keyword", affect_columns = selector_name(features_pca), rank. = 7)
 
 # remove the original medical keywords
 po_remove_medical_keywords <- po("select", id = "remove_medical_keywords", selector = selector_invert(selector_name(features_pca)))
 
-po_medical_keywords <- po_pca %>>% po_remove_medical_keywords
+# rename the pca columns: po("renamecolumns", param_vals = list(renaming = c("Petal.Length" = "PL")))
+name_mapping <- setNames(paste0("Medical_Keyword_PC", 1:7), paste0("PC", 1:7))
+po_rename_pca <- po("renamecolumns", id="rename_keyword_pcs", renaming = name_mapping)
+
+po_medical_keywords <- po_pca %>>% po_remove_medical_keywords %>>% po_rename_pca
+```
+
+```{r}
+# for medical history 1-41, impact encode columns 3-41 and then perform pca on all 41
+features_medical_history <- paste0("Medical_History_", 3:41)
+po_medical_history_impact <- po("encodeimpact", id="impact_enc_medical_history", affect_columns = selector_name(features_medical_history))
+po_medical_history_scale <- po("scalerange", id="scale_medical_history", affect_columns = selector_name(paste0("Medical_History_", 1:41)))
+po_medical_history_pca <- po("pca", id="pca_medical_history", affect_columns = selector_name(paste0("Medical_History_", 1:41)), rank. = 10)
+po_remove_medical_history <- po("select", id = "remove_medical_history", selector = selector_invert(selector_name(paste0("Medical_History_", 1:41))))
+name_mapping <- setNames(paste0("Medical_History_PC", 1:10), paste0("PC", 1:10))
+po_rename_history_pca <- po("renamecolumns", id="rename_history_pcs", renaming = name_mapping)
+
+po_medical_history <- po_medical_history_impact %>>% po_medical_history_scale %>>% po_medical_history_pca %>>% po_remove_medical_history %>>% po_rename_history_pca
 ```
 
 ```{r}
@@ -146,17 +163,16 @@ po_scale <- po("scalerange")
 
 
 ```{r}
-pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_impact %>>% po_medical_keywords %>>% po_scale # %>>% po_onehot
+pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_impact %>>% po_medical_keywords %>>% po_medical_history %>>% po_scale
 ```
-
 
 ```{r}
 # check the result of the pipeline
-# result <- pipeline$train(task_train)
+result <- pipeline$train(task_train)
 
-# data_res <- result[[1]]$data()
-# # print columns of data_res
-# head(data_res)
+data_res <- result[[1]]$data()
+# print columns of data_res
+head(data_res)
 ```
 
 
