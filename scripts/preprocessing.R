@@ -1,24 +1,3 @@
-library(mlr3)
-library(mlr3verse)
-library(mlr3learners)
-library(mlr3pipelines)
-library(mlr3tuning)
-library(mlr3mbo)
-library(Metrics)
-library(future)
-library(future.apply)
-source("scripts/utils.R")
-source("scripts/qwk_measure.R")
-
-set.seed(123)
-
-# ---- Load the data ----
-data <- read.csv("data\\train.csv")
-data_submission <- read.csv("data\\test.csv")
-
-# create a mlr3 task
-task <- as_task_classif(data, target = "Response")
-
 # split the data into training and testing sets
 split <- partition(task, ratio = 0.8)
 
@@ -42,9 +21,6 @@ data_submission <- cbind(data_submission, sum_medical_keywords_submission)
 
 # ---- Create tasks ----
 data_train <- task$data(rows = split$train)
-
-task_train <- task$clone(deep = TRUE)$filter(split$train)
-task_test <- task$clone(deep = TRUE)$filter(split$test)
 
 # ---- Preprocessing ----
 
@@ -141,56 +117,4 @@ pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_impa
 
 # ---- Feature selection ----
 # feature selection using information gain
-po_info_gain <- po("filter", filter = flt("information_gain"), filter.nfeat = 25)
-
-# ---- Learner ----
-xgboost <- lrn("classif.xgboost")
-learner <- as_learner(pipeline %>>% po_info_gain %>>% xgboost)
-
-# ---- Tuning ----
-
-# Define the search space
-param_set <- ParamSet$new(list(
-  ParamInt$new("classif.xgboost.nrounds", lower = 50, upper = 2000),
-  ParamDbl$new("classif.xgboost.eta", lower = 0.01, upper = 0.3),
-  ParamInt$new("classif.xgboost.max_depth", lower = 3, upper = 20),
-  ParamDbl$new("classif.xgboost.colsample_bytree", lower = 0.5, upper = 1.0),
-  ParamDbl$new("classif.xgboost.subsample", lower = 0.5, upper = 1.0),
-  ParamInt$new("information_gain.filter.nfeat", lower = 10, upper = 50)
-))
-
-# Define the tuner
-tuner <- tnr("mbo")
-
-measure <- MeasureClassifQuadraticWeightedKappa$new()
-
-# Define the AutoTuner
-at <- AutoTuner$new(
-  learner = learner,
-  resampling = rsmp("cv", folds = 3),
-  measure = measure,
-  terminator = trm("evals", n_evals = 50),
-  tuner = tuner,
-  search_space = param_set
-)
-
-# ---- Training with tuning ----
-plan(multisession)
-at$train(task_train)
-plan(sequential)
-
-# Access the tuned hyperparameters
-tuned_params <- at$archive$best()$params
-
-# Save the tuned hyperparameters to a CSV file
-write.csv(tuned_params, file = "tuned_hyperparameters.csv", row.names = FALSE)
-
-# ---- Prediction ----
-preds <- at$predict(task_test)
-
-score <- measure$score(preds)
-print(score)
-
-# ---- Submission ----
-filename <- create_learner_submission(at$learner, data_submission, name = "xgboost")
-print(filename)
+po_info_gain <- po("filter", filter = flt("information_gain"), filter.nfeat = 47)

@@ -173,3 +173,7 @@ Check if all columns have been preprocessed:
 - D 'Medical_Keyword_46',  summed and PCA
 - D 'Medical_Keyword_47',  summed and PCA
 - D 'Medical_Keyword_48',  summed and PCA
+
+
+- nrounds is driving up the tuning times
+- should we use early stopping for the xgb classifier?
