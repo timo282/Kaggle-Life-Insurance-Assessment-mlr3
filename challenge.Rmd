@@ -235,3 +235,43 @@ source("scripts/utils.R")
 create_learner_submission(level1, level0_submission_out_classif, name="ranger_pipe")
 ```
 
+```{r}
+# ---- Stacking ----
+# learner_regr <- lrn("regr.xgboost")
+# learner_classif <- lrn("classif.xgboost", predict_type = "prob")
+# learner_tree <- lrn("regr.rpart")
+
+# # Define the preprocessing pipeline
+# preprocessing_pipeline <- pipeline
+
+# # Define the regression branch
+# regression_branch <- po("copy") %>>%
+#   preprocessing_pipeline %>>%
+#   po("learner_cv", learner = learner_regr, resampling.method = "cv", resampling.folds = 3)
+
+# # Define the classification branch
+# classification_branch <- po("copy") %>>%
+#   po_regr_to_classif %>>%
+#   preprocessing_pipeline %>>%
+#   po("learner_cv", learner = learner_classif, resampling.method = "cv", resampling.folds = 3)
+
+# # Combine the branches
+# combined <- gunion(list(regression_branch, classification_branch)) %>>%
+#   po("featureunion")
+
+# # Define the final pipeline
+# final_pipeline <- preprocessing_pipeline %>>%
+#   combined %>>%
+#   po("learner", learner = learner_tree)
+
+# # ---- Training ----
+
+# # Train the final pipeline
+# result <- final_pipeline$train(task_train)
+
+# # Print the result
+# print(result)
+
+
+```	
+
