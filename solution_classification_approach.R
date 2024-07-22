@@ -2,7 +2,10 @@ library(mlr3)
 library(mlr3verse)
 library(mlr3learners)
 library(mlr3pipelines)
+library(mlr3tuning)
 library(Metrics)
+library(future)
+library(future.apply)
 source("scripts/utils.R")
 
 set.seed(123)
@@ -12,10 +15,10 @@ data <- read.csv("data\\train.csv")
 data_submission <- read.csv("data\\test.csv")
 
 # create a mlr3 task
-task_regr <- as_task_regr(data, target = "Response")
+task <- as_task_classif(data, target = "Response")
 
 # split the data into training and testing sets
-split <- partition(task_regr, ratio = 0.8)
+split <- partition(task, ratio = 0.8)
 
 # ---- Feature engineering ----
 # for Medical_Keyword_1-48 all binary (0-1): construct new feature sum keywords
@@ -29,17 +32,17 @@ sum_columns <- function(data, columns) {
     data.table(sum_medical_keywords = rowSums(data[, ..columns]))
 }
 
-sum_medical_keywords <- sum_columns(task_regr$data(), features_medical_keywords)
-task_regr$cbind(sum_medical_keywords)
+sum_medical_keywords <- sum_columns(task$data(), features_medical_keywords)
+task$cbind(sum_medical_keywords)
 
 sum_medical_keywords_submission <- sum_columns(data_submission, features_medical_keywords)
 data_submission <- cbind(data_submission, sum_medical_keywords_submission)
 
 # ---- Create tasks ----
-data_train <- task_regr$data(rows = split$train)
+data_train <- task$data(rows = split$train)
 
-task_train <- task_regr$clone(deep = TRUE)$filter(split$train)
-task_test <- task_regr$clone(deep = TRUE)$filter(split$test)
+task_train <- task$clone(deep = TRUE)$filter(split$train)
+task_test <- task$clone(deep = TRUE)$filter(split$test)
 
 # ---- Preprocessing ----
 
@@ -134,40 +137,53 @@ po_scale <- po("scalerange")
 # -- Combine all preprocessing steps --
 pipeline <- po_select %>>% po_impute %>>% po_binary %>>% po_ordinal %>>% po_impact %>>% po_medical_keywords %>>% po_medical_history %>>% po_scale
 
+# ---- Feature selection ----
+# feature selection using information gain
+po_info_gain <- po("filter", filter = flt("information_gain"), filter.nfeat = 25)
 
-# ---- Model ----
-# learner_regr <- lrn("regr.xgboost")
-# learner_classif <- lrn("classif.xgboost", predict_type = "prob")
-# learner_tree <- lrn("regr.rpart")
+# ---- Learner ----
+xgboost <- lrn("classif.xgboost")
+learner <- as_learner(pipeline %>>% po_info_gain %>>% xgboost)
 
-# # Define the preprocessing pipeline
-# preprocessing_pipeline <- pipeline
+# ---- Tuning ----
 
-# # Define the regression branch
-# regression_branch <- po("copy") %>>%
-#   preprocessing_pipeline %>>%
-#   po("learner_cv", learner = learner_regr, resampling.method = "cv", resampling.folds = 3)
+# Define the search space
+param_set <- ParamSet$new(list(
+  ParamInt$new("classif.xgboost.nrounds", lower = 50, upper = 1000),
+  ParamDbl$new("classif.xgboost.eta", lower = 0.01, upper = 0.3),
+  ParamInt$new("classif.xgboost.max_depth", lower = 3, upper = 20),
+  ParamDbl$new("classif.xgboost.colsample_bytree", lower = 0.5, upper = 1.0),
+  ParamDbl$new("classif.xgboost.subsample", lower = 0.5, upper = 1.0),
+  ParamInt$new("information_gain.filter.nfeat", lower = 10, upper = 50)
+))
 
-# # Define the classification branch
-# classification_branch <- po("copy") %>>%
-#   po_regr_to_classif %>>%
-#   preprocessing_pipeline %>>%
-#   po("learner_cv", learner = learner_classif, resampling.method = "cv", resampling.folds = 3)
+# Define the tuner
+tuner <- tnr("mbo")
 
-# # Combine the branches
-# combined <- gunion(list(regression_branch, classification_branch)) %>>%
-#   po("featureunion")
+measure <- MeasureClassifQuadraticWeightedKappa$new()
 
-# # Define the final pipeline
-# final_pipeline <- preprocessing_pipeline %>>%
-#   combined %>>%
-#   po("learner", learner = learner_tree)
+# Define the AutoTuner
+at <- AutoTuner$new(
+  learner = learner,
+  resampling = rsmp("cv", folds = 3),
+  measure = measure,
+  terminator = trm("evals", n_evals = 50),
+  tuner = tuner,
+  search_space = param_set
+)
 
-# # ---- Training ----
+# ---- Training with tuning ----
+plan(multisession)
+at$train(task_train)
+plan(sequential)
 
-# # Train the final pipeline
-# result <- final_pipeline$train(task_train)
+# ---- Prediction ----
+preds <- at$predict(task_test)
 
-# # Print the result
-# print(result)
+score <- measure$score(preds)
+print(score)
+
+# ---- Submission ----
+filename <- create_learner_submission(at$learner, data_submission, name = "xgboost")
+print(filename)
 
